@@ -1,5 +1,8 @@
 package com.example.coinmarket
 
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.app.Service
 import android.content.Context
 import android.content.Intent
@@ -8,6 +11,7 @@ import android.os.IBinder
 import android.os.Looper
 import android.util.Log
 import android.widget.Toast
+import androidx.core.app.NotificationCompat
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
@@ -34,6 +38,7 @@ class RateCheckService : Service() {
                     Log.d(TAG, "Полученная котировка: $rate")
                     // Проверяем, достигнута ли целевая котировка
                     if (rate >= targetRate) {
+                        sendNotification("Целевая котировка достигнута! Курс: $rate", R.drawable.up)
                         Log.d(TAG, "Целевая котировка достигнута! Курс: $rate")
                         stopService() // Останавливаем сервис, так как цель достигнута
                     } else {
@@ -48,6 +53,33 @@ class RateCheckService : Service() {
                 Log.e(TAG, "Ответ от API пустой или недоступен.")
             }
         }
+    }
+
+    private fun sendNotification(message: String, icon: Int) {
+        // Создаем Notification Manager
+        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+        // Для Android 8.0 и выше нужно создать канал уведомлений
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                "rate_notification_channel",
+                "Rate Notifications",
+                NotificationManager.IMPORTANCE_DEFAULT
+            )
+            notificationManager.createNotificationChannel(channel)
+        }
+
+        // Создаем уведомление
+        val notification: Notification = NotificationCompat.Builder(this, "rate_notification_channel")
+            .setContentTitle("Изменение котировки")
+            .setContentText(message)
+            .setSmallIcon(R.drawable.ic_launcher_background)  // Иконка уведомления (по умолчанию)
+            .setLargeIcon(android.graphics.BitmapFactory.decodeResource(resources, icon)) // Стрелка вверх или вниз
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .build()
+
+        // Отправляем уведомление
+        notificationManager.notify(1, notification)
     }
 
     override fun onBind(p0: Intent?): IBinder? = null
